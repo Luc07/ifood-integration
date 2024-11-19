@@ -4,5 +4,8 @@ const { registrarPedido, capturarEvento, pegarPedido } = require('../controllers
 
 router.post('/webhook', capturarEvento)
 
+router.get('/aloo', (req, res) => {
+  return res.send('alooo');
+});
 
 module.exports = router;
