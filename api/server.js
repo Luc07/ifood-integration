@@ -1,27 +1,54 @@
 const express = require('express');
-const bodyParser = require('body-parser');
+const cors = require('cors');
+const cron = require('node-cron');
+const webHookRoutes = require('./routes/webhook');
+const { getToken } = require('./lib/getToken');
+const { getTokenFromDB } = require('./lib/tokenService');
+const { capturarEventosPorPolling } = require('./controllers/webhookController');
 
 const app = express();
 const PORT = 3333;
 
-// Middleware para interpretar JSON no corpo das requisições
-app.use(bodyParser.json());
+app.use(cors());
+app.use(express.json());
 
-// Rota para receber os eventos do webhook
-app.post('/webhook/ifood', (req, res) => {
-    const event = req.body;
+app.use('/api', webHookRoutes);
 
-    console.log('Evento recebido:', event);
-
-    // Aqui você pode processar o evento
-    // Por exemplo: verificar o tipo de evento e salvar em um banco de dados
-
-    res.sendStatus(200); // Envia status 200 para confirmar o recebimento
+cron.schedule('*/2 * * * *', async () => {
+  console.log('Executando polling de eventos:', new Date().toLocaleString());
+  try {
+    await capturarEventosPorPolling();
+    console.log('Polling concluído com sucesso.');
+  } catch (err) {
+    console.error('Erro ao executar polling:', err.message);
+  }
 });
-app.get('/aloo', (req, res) => {
-    console.log('Hello world');
-    res.sendStatus(200);
+
+cron.schedule('0 */6 * * *', async () => {
+  try {
+    console.log('Iniciando atualização do token...');
+    const token = await getToken();
+    console.log('Token atualizado com sucesso:', token);
+  } catch (err) {
+    console.error('Erro ao atualizar o token:', err.message);
+  }
 });
+
+(async () => {
+  try {
+      console.log('Verificando token no banco ao iniciar o servidor...');
+      const token = await getTokenFromDB();
+      if (!token) {
+          console.log('Nenhum token válido encontrado. Obtendo novo token...');
+          await getToken();
+          console.log('Novo token obtido com sucesso.');
+      } else {
+          console.log('Token válido encontrado no banco.');
+      }
+  } catch (err) {
+      console.error('Erro ao verificar ou obter token na inicialização:', err.message);
+  }
+})();
 
 app.listen(PORT, () => {
     console.log(`Servidor rodando na porta ${PORT}`);
