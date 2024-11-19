@@ -14,10 +14,6 @@ app.use(express.json());
 
 app.use('/api', webHookRoutes);
 
-app.use('/aloo', (res, req) => {
-  return res.send('alooo');
-})
-
 cron.schedule('*/2 * * * *', async () => {
   console.log('Executando polling de eventos:', new Date().toLocaleString());
   try {
