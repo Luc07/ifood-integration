@@ -1,6 +1,6 @@
 const axios = require('axios');
 const qs = require('qs');
-const { saveTokenToDB, getTokenFromDB } = require('./tokenService')
+const { saveTokenToDB, getTokenFromDB } = require('./tokenService');
 
 async function getToken() {
   const url = process.env.URL_TOKEN;
@@ -16,14 +16,22 @@ async function getToken() {
         'Content-Type': 'application/x-www-form-urlencoded',
       },
     });
-    await saveTokenToDB(response.data.accessToken, response.data.expiresIn);
+
+    try {
+      await saveTokenToDB(response.data.accessToken, response.data.expiresIn);
+      console.log('Token obtido e salvo com sucesso.');
+    } catch (dbError) {
+      console.error('Erro ao salvar o token no banco de dados:', dbError.message);
+    }
+
     return response.data.accessToken;
+
   } catch (error) {
     console.error('Erro ao obter o token:', error.response?.data || error.message);
-    throw error;
+    return null;
   }
 }
 
 module.exports = {
-  getToken
-}
+  getToken,
+};

@@ -1,14 +1,19 @@
 const pool = require('../db');
 
 async function saveTokenToDB(token, expiresIn) {
-  console.log(token, expiresIn)
+  console.log(token, expiresIn);
   const expiresAt = new Date(Date.now() + expiresIn * 1000);
   const query = `
         INSERT INTO ifood_tokens (token, expires_at)
         VALUES (?, ?);
     `;
-  await pool.query(query, [token, expiresAt]);
-  console.log('Token salvo no banco de dados.');
+
+  try {
+    await pool.query(query, [token, expiresAt]);
+    console.log('Token salvo no banco de dados.');
+  } catch (error) {
+    console.error('Erro ao salvar o token no banco de dados:', error.message);
+  }
 }
 
 async function getTokenFromDB() {
@@ -38,5 +43,5 @@ async function getTokenFromDB() {
 
 module.exports = {
   getTokenFromDB,
-  saveTokenToDB
-}
+  saveTokenToDB,
+};

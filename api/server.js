@@ -14,13 +14,33 @@ app.use(express.json());
 
 app.use('/api', webHookRoutes);
 
+function logErro(contexto, err) {
+  console.error(`[${new Date().toLocaleString()}] Erro em ${contexto}:`, err.message || err);
+}
+
+async function inicializarToken() {
+  console.log('Verificando token no banco ao iniciar o servidor...');
+  try {
+    const token = await getTokenFromDB();
+    if (!token) {
+      console.log('Nenhum token válido encontrado. Obtendo novo token...');
+      await getToken();
+      console.log('Novo token obtido com sucesso.');
+    } else {
+      console.log('Token válido encontrado no banco.');
+    }
+  } catch (err) {
+    logErro('inicialização do token', err);
+  }
+}
+
 cron.schedule('*/2 * * * *', async () => {
   console.log('Executando polling de eventos:', new Date().toLocaleString());
   try {
     await capturarEventosPorPolling();
     console.log('Polling concluído com sucesso.');
   } catch (err) {
-    console.error('Erro ao executar polling:', err.message);
+    logErro('polling de eventos', err);
   }
 });
 
@@ -30,26 +50,14 @@ cron.schedule('0 */6 * * *', async () => {
     const token = await getToken();
     console.log('Token atualizado com sucesso:', token);
   } catch (err) {
-    console.error('Erro ao atualizar o token:', err.message);
+    logErro('atualização do token', err);
   }
 });
 
 (async () => {
-  try {
-      console.log('Verificando token no banco ao iniciar o servidor...');
-      const token = await getTokenFromDB();
-      if (!token) {
-          console.log('Nenhum token válido encontrado. Obtendo novo token...');
-          await getToken();
-          console.log('Novo token obtido com sucesso.');
-      } else {
-          console.log('Token válido encontrado no banco.');
-      }
-  } catch (err) {
-      console.error('Erro ao verificar ou obter token na inicialização:', err.message);
-  }
+  await inicializarToken();
 })();
 
 app.listen(PORT, () => {
-    console.log(`Servidor rodando na porta ${PORT}`);
+  console.log(`Servidor rodando na porta ${PORT}`);
 });
